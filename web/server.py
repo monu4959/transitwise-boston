@@ -19,12 +19,15 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / ".env")
 
+from agents.aws_secrets import load_secrets  # noqa: E402
+load_secrets()        # on AWS: credentials from Secrets Manager (no-op locally)
+
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.responses import FileResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
-from agents import otp, planner  # noqa: E402
+from agents import llm, otp, planner  # noqa: E402
 from agents.door_to_door import _explain, plan_door_to_door  # noqa: E402
 from agents.monitor import check_door_watch, start_door_trip  # noqa: E402
 from agents.places import CURRENT_LOCATION, _short, geocode, in_area, resolve_place, station_places  # noqa: E402
@@ -85,7 +88,7 @@ def index():
 @app.get("/api/health")
 def health():
     return {"otp": otp.is_available(), "mbta": bool(MBTA_KEY), "db": STATE["db"],
-            "llm": bool(os.getenv("LLM_API_KEY")), "model": STATE["model"]}
+            "llm": llm.available(), "model": STATE["model"]}
 
 
 # ---------- places ----------
