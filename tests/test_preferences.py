@@ -123,3 +123,26 @@ def test_secrets_loader_fills_only_missing(monkeypatch):
     assert aws_secrets.load_secrets() == ["MBTA_KEY"]
     import os
     assert os.environ["MBTA_KEY"] == "from-aws" and os.environ["SNOWFLAKE_USER"] == "local-user"
+
+
+def test_secrets_loader_reads_several_secrets(monkeypatch):
+    import sys
+    import types
+    store = {"transitwise/app": {"MBTA_KEY": "k"}, "transitwise/otp": {"OTP_TOKEN": "t"}}
+
+    class FakeSM:
+        def get_secret_value(self, SecretId):
+            return {"SecretString": json.dumps(store[SecretId])}
+    monkeypatch.setitem(sys.modules, "boto3", types.SimpleNamespace(client=lambda name: FakeSM()))
+    monkeypatch.setenv("TRANSITWISE_SECRET_ID", "transitwise/app, transitwise/otp")
+    monkeypatch.delenv("MBTA_KEY", raising=False)
+    monkeypatch.delenv("OTP_TOKEN", raising=False)
+    assert aws_secrets.load_secrets() == ["MBTA_KEY", "OTP_TOKEN"]
+
+
+def test_otp_token_header(monkeypatch):
+    from agents import otp
+    monkeypatch.delenv("OTP_TOKEN", raising=False)
+    assert otp._headers() == {}                          # local OTP: no header
+    monkeypatch.setenv("OTP_TOKEN", "abc")
+    assert otp._headers() == {"X-OTP-Token": "abc"}

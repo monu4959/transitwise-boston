@@ -53,4 +53,5 @@ EOF
 systemctl daemon-reload
 systemctl enable otp
 
+bash "$HOME_DIR/app/deploy/agentcore/otp_ec2/token-proxy.sh"   # nginx on :80, needs secret transitwise/otp
 "$HOME_DIR/refresh.sh"     # first graph build, then starts the service

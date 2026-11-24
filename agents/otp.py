@@ -235,9 +235,17 @@ def stations_used(trip):
 
 # ---------- talking to OTP ----------
 
+def _headers():
+    """The shared-secret header the token proxy in front of a hosted OTP checks
+    (deploy/agentcore/otp_ec2). Not needed for a local OTP server."""
+    token = (os.getenv("OTP_TOKEN") or "").strip()
+    return {"X-OTP-Token": token} if token else {}
+
+
 def _post(query, variables, timeout=30):
     try:
-        r = requests.post(OTP_URL, json={"query": query, "variables": variables}, timeout=timeout)
+        r = requests.post(OTP_URL, json={"query": query, "variables": variables}, timeout=timeout,
+                          headers=_headers())
         r.raise_for_status()
     except requests.RequestException as e:
         raise OTPUnavailable(f"Trip planner server not reachable at {OTP_URL} ({e.__class__.__name__}). "

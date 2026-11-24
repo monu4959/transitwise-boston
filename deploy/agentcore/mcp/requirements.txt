@@ -1,0 +1,11 @@
+# What mcp_server.py needs on AgentCore Runtime (torch is installed first, CPU-only, by the Dockerfile)
+mcp<2
+requests
+python-dotenv
+networkx
+numpy
+snowflake-connector-python[pandas]
+cryptography
+sentence-transformers
+boto3>=1.40
+aws-opentelemetry-distro    # AgentCore Observability traces (opentelemetry-instrument)

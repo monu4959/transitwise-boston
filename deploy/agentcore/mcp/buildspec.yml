@@ -1,0 +1,17 @@
+# AWS CodeBuild (ARM host): build the MCP server image and push it to ECR.
+# StartBuild passes ECR_REPO (repository URI) and IMAGE_TAG; the source is a zip of the repo
+# subset the image needs, made by deploy/agentcore/package_source.py.
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "${ECR_REPO%%/*}"
+  build:
+    commands:
+      - docker build -f deploy/agentcore/mcp/Dockerfile -t "$ECR_REPO:$IMAGE_TAG" -t "$ECR_REPO:latest" .
+  post_build:
+    commands:
+      - docker push "$ECR_REPO:$IMAGE_TAG"
+      - docker push "$ECR_REPO:latest"
+      - docker image inspect "$ECR_REPO:$IMAGE_TAG" --format 'arch={{.Architecture}} size={{.Size}}'
