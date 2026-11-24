@@ -1,7 +1,8 @@
 # TransitWise Boston on Hugging Face Spaces: OpenTripPlanner and the website in one container.
 # deploy/huggingface/push_space.py copies this file and the app code into the Space.
 
-FROM eclipse-temurin:21-jre AS java
+# OTP 2.10 is compiled for Java 25 (Java 21 fails with UnsupportedClassVersionError)
+FROM eclipse-temurin:25-jre AS java
 
 FROM python:3.12-slim-bookworm
 
