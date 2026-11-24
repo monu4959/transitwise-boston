@@ -1,0 +1,9 @@
+# What agent_server.py needs on AgentCore Runtime (HTTP protocol). No torch or Snowflake:
+# the agent only talks to Claude and to the MCP tools (through AgentCore Gateway).
+anthropic[bedrock]
+mcp<2
+fastapi
+uvicorn
+python-dotenv
+boto3>=1.40
+aws-opentelemetry-distro    # AgentCore Observability traces (opentelemetry-instrument)

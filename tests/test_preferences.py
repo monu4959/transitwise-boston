@@ -89,18 +89,19 @@ def test_memory_store_round_trip_newest_wins():
 
 
 def test_bedrock_provider(monkeypatch):
+    from types import SimpleNamespace as NS
     sent = {}
 
-    class FakeRuntime:
-        def converse(self, **kw):
+    class FakeMessages:
+        def create(self, **kw):
             sent.update(kw)
-            return {"output": {"message": {"content": [{"text": "Take the "}, {"text": "Green Line."}]}},
-                    "stopReason": "end_turn"}
+            return NS(content=[NS(type="text", text="Take the "), NS(type="text", text="Green Line.")],
+                      stop_reason="end_turn")
     monkeypatch.setattr(llm, "PROVIDER", "bedrock")
-    monkeypatch.setattr(llm, "_bedrock", FakeRuntime())
+    monkeypatch.setattr(llm, "_clients", {"bedrock": NS(messages=FakeMessages())})
     assert llm.ask_llm("hi") == "Take the Green Line."
-    assert sent["inferenceConfig"]["maxTokens"] == llm.MAX_TOKENS   # never left unset
-    assert sent["modelId"] == llm.BEDROCK_MODEL_ID
+    assert sent["max_tokens"] == llm.MAX_TOKENS   # never left unset
+    assert sent["model"] == llm.MODEL
     assert llm.available()
 
 

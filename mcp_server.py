@@ -16,7 +16,7 @@ from agents.retriever import search_policies
 
 # On AgentCore Runtime (MCP protocol) the server must listen on 0.0.0.0:8000 at /mcp, stateless.
 TRANSPORT = (os.getenv("MCP_TRANSPORT") or "stdio").strip()
-mcp = (FastMCP("transitwise", host="0.0.0.0", port=8000, stateless_http=True)
+mcp = (FastMCP("transitwise", host=os.getenv("MCP_HOST", "0.0.0.0"), port=8000, stateless_http=True)
        if TRANSPORT == "streamable-http" else FastMCP("transitwise"))
 MBTA_KEY = os.getenv("MBTA_KEY") or os.getenv("MBTA_API_KEY")
 _conn = None

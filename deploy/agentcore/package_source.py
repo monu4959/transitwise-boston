@@ -1,6 +1,7 @@
 """Zip the files CodeBuild needs to build an AgentCore image, and nothing else.
 
     py -3.12 deploy/agentcore/package_source.py mcp <out.zip>
+    py -3.12 deploy/agentcore/package_source.py agent <out.zip>
 
 Only allow-listed paths go in (no .env, keys, notebooks or data), so secrets can't leak into a
 build. Upload the zip to the build bucket and start the CodeBuild project (see README).
@@ -14,6 +15,10 @@ IMAGES = {
     "mcp": ["agents/*.py", "mcp_server.py",
             "deploy/agentcore/mcp/Dockerfile", "deploy/agentcore/mcp/requirements.txt",
             "deploy/agentcore/mcp/buildspec.yml"],
+    "agent": ["agents/__init__.py", "agents/llm.py", "agents/preferences.py", "agents/aws_secrets.py",
+              "agents/trip_agent.py", "agent_server.py",
+              "deploy/agentcore/agent/Dockerfile", "deploy/agentcore/agent/requirements.txt",
+              "deploy/agentcore/agent/buildspec.yml"],
 }
 
 

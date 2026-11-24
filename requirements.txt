@@ -16,6 +16,7 @@ openai           # only with LLM_PROVIDER=openai
 
 # AWS deployment: Claude on Bedrock, Secrets Manager, AgentCore Memory
 boto3>=1.40
+botocore[crt]    # lets boto3 use `aws login` credentials locally
 
 # MCP server and the older Streamlit app
 mcp<2

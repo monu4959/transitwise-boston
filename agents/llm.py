@@ -5,13 +5,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# "anthropic" (Claude API, needs LLM_API_KEY), "bedrock" (Claude on Amazon Bedrock, uses the
-# AWS role or profile: no API key), or "openai" (needs LLM_API_KEY holding an OpenAI key).
+# "anthropic" (Claude API, needs LLM_API_KEY), "bedrock" (Claude on Amazon Bedrock through the
+# Anthropic SDK's Bedrock client: uses the AWS role or profile, no API key), or "openai".
+# Anthropic and Bedrock take the same Messages API requests; only the client and model ID differ.
 PROVIDER = (os.getenv("LLM_PROVIDER") or "anthropic").strip().lower()
-BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID") or "us.anthropic.claude-haiku-5-5"
+MODEL = (os.getenv("BEDROCK_MODEL_ID") or "anthropic.claude-haiku-5-5") if PROVIDER == "bedrock" \
+    else "claude-haiku-5-5"
 MAX_TOKENS = 2000
 _key = None
-_bedrock = None
+_clients = {}
 
 
 def available():
@@ -31,30 +33,24 @@ def _get_key():
     return _key
 
 
-def _bedrock_client():
-    global _bedrock
-    if _bedrock is None:
-        import boto3
-        from botocore.config import Config
-        _bedrock = boto3.client("bedrock-runtime",
-                                config=Config(retries={"max_attempts": 5, "mode": "adaptive"}))
-    return _bedrock
+def client(use_async=False):
+    """The Anthropic SDK client for the configured provider (cached)."""
+    kind = ("async-" if use_async else "") + PROVIDER
+    if kind not in _clients:
+        import anthropic
+        if PROVIDER == "bedrock":
+            cls = anthropic.AsyncAnthropicBedrockMantle if use_async else anthropic.AnthropicBedrockMantle
+            _clients[kind] = cls(aws_region=os.getenv("AWS_REGION") or "us-east-2")
+        else:
+            cls = anthropic.AsyncAnthropic if use_async else anthropic.Anthropic
+            _clients[kind] = cls(api_key=_get_key())
+    return _clients[kind]
 
 
 def ask_llm(prompt):
-    if PROVIDER == "bedrock":
-        resp = _bedrock_client().converse(
-            modelId=BEDROCK_MODEL_ID,
-            messages=[{"role": "user", "content": [{"text": prompt}]}],
-            inferenceConfig={"maxTokens": MAX_TOKENS},   # always explicit: unset reserves the model max
-        )
-        text = "".join(b.get("text", "") for b in resp["output"]["message"]["content"])
-        return text or f"(No answer text returned. stopReason: {resp.get('stopReason')})"
-    if PROVIDER == "anthropic":
-        import anthropic
-        client = anthropic.Anthropic(api_key=_get_key())
-        msg = client.messages.create(
-            model="claude-haiku-5-5",
+    if PROVIDER in ("anthropic", "bedrock"):
+        msg = client().messages.create(
+            model=MODEL,
             max_tokens=MAX_TOKENS,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -63,8 +59,8 @@ def ask_llm(prompt):
             text = f"(No answer text returned. stop_reason: {msg.stop_reason})"
         return text
     from openai import OpenAI
-    client = OpenAI(api_key=_get_key())
-    resp = client.chat.completions.create(
+    oa = OpenAI(api_key=_get_key())
+    resp = oa.chat.completions.create(
         model="gpt-4o-mini",   # check your OpenAI dashboard for current small models
         messages=[{"role": "user", "content": prompt}],
     )
