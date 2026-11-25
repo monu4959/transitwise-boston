@@ -1,0 +1,106 @@
+version: 2
+
+models:
+  - name: fct_elevator_outages
+    description: >
+      One row per elevator outage, built from repeated alert snapshots. Incremental: each
+      run merges new and still-open outages. Times are UTC. Because snapshots are hours
+      apart, durations are given as bounds (min/max_duration_hours).
+    columns:
+      - name: outage_id
+        description: Elevator ID @ first snapshot that showed it closed.
+        data_tests: [unique, not_null]
+      - name: facility_id
+        description: MBTA elevator ID.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_elevators')
+                field: facility_id
+              config:
+                severity: warn   # RAW.FACILITIES lags behind new elevators
+      - name: station_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_stations')
+                field: station_id
+              config:
+                severity: warn
+      - name: first_seen_at
+        description: First snapshot that showed the elevator closed.
+      - name: last_seen_at
+        description: Last snapshot that showed it closed.
+      - name: cleared_seen_at
+        description: First snapshot that no longer listed it; null while ongoing.
+      - name: is_ongoing
+        description: Still closed in the latest snapshot.
+      - name: began_before_tracking
+        description: Already closed in the pipeline's first snapshot, so the true start is earlier.
+      - name: min_duration_hours
+        description: First to last sighting. The outage lasted at least this long.
+      - name: max_duration_hours
+        description: >
+          Last snapshot it was working to first snapshot it was working again (to the
+          latest sighting while ongoing). The outage lasted at most this long so far.
+      - name: announced_start_at
+        description: Earliest start MBTA announced across the outage's alerts.
+      - name: last_checked_at
+        description: Latest snapshot this row was computed from (the incremental watermark).
+
+  - name: dim_stations
+    columns:
+      - name: station_id
+        data_tests: [unique, not_null]
+      - name: elevator_count
+        description: Elevators listed for the station in RAW.FACILITIES.
+
+  - name: dim_elevators
+    columns:
+      - name: facility_id
+        data_tests: [unique, not_null]
+
+  - name: current_elevator_outages
+    description: >
+      Replaces the hand-written CLEAN.CURRENT_ELEVATOR_OUTAGES view with the same rows. A
+      view, so it always reflects the latest snapshot.
+    columns:
+      - name: station_id
+        data_tests: [not_null]
+
+  - name: fct_trips
+    columns:
+      - name: trip_id
+        data_tests: [unique, not_null]
+
+  - name: fct_trip_blockers
+    description: One row per station a planned trip had to avoid.
+    columns:
+      - name: trip_blocker_id
+        data_tests: [unique, not_null]
+      - name: trip_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('fct_trips')
+                field: trip_id
+      - name: station_id
+        description: Null if the logged name matched no station.
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: recorded_outages
+        description: >
+          Elevator outages the pipeline had recorded at this station when the trip was
+          planned. 0 can mean the outage started between snapshots.
+
+  - name: station_reliability
+    description: >
+      Per station with elevators: outages recorded while the pipeline was watching, and
+      trips routed around it. Outage hours are a range because snapshots are hours apart.
+    columns:
+      - name: station_id
+        data_tests: [unique, not_null]

@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: stg_mbta__alerts
+    description: Every alert in every snapshot. Grain is alert x snapshot.
+    data_tests:
+      - unique:
+          arguments:
+            column_name: "alert_id || '@' || snapshot_at::string"
+    columns:
+      - name: alert_id
+        data_tests: [not_null]
+      - name: snapshot_at
+        description: When the pipeline took the snapshot (UTC).
+        data_tests: [not_null]
+      - name: announced_start_at
+        description: Start of the alert's active period as MBTA announced it (UTC).
+      - name: announced_end_at
+        description: End MBTA announced; null when open-ended.
+
+  - name: stg_mbta__stations
+    columns:
+      - name: station_id
+        data_tests: [unique, not_null]
+      - name: station_name
+        description: Unique, so the trip log (which stores names) can be joined on it.
+        data_tests: [unique, not_null]
+
+  - name: stg_mbta__facilities
+    columns:
+      - name: facility_id
+        data_tests: [unique, not_null]
+      - name: facility_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [ELEVATOR, ESCALATOR, PORTABLE_BOARDING_LIFT, ELEVATED_SUBPLATFORM]
+
+  - name: stg_app__trips
+    columns:
+      - name: trip_id
+        data_tests: [unique, not_null]
+      - name: source_group
+        description: rider (website and app), agent (MCP), monitoring, evaluation or notebook.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [rider, agent, monitoring, evaluation, notebook]

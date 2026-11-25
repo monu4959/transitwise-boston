@@ -227,3 +227,9 @@ venv/
 
 # macOS
 .DS_Store
+
+# dbt (see dbt/)
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/.user.yml

@@ -1,0 +1,88 @@
+version: 2
+
+# Unit tests run the model's SQL on small hand-made inputs. Run them locally with
+#   python dbt/run_dbt.py test --select test_type:unit
+# (the scheduled production run skips them; they test logic, not data).
+
+unit_tests:
+  - name: outages_end_only_when_a_snapshot_shows_the_elevator_working
+    description: >
+      Elevator A is closed in snapshots 1-2, working in 3, closed again in 4-5: two
+      outages, the second still ongoing. Elevator B is closed in 2-3 with a 13-hour gap
+      between them (a skipped run), which must stay one outage, cleared at snapshot 4.
+    model: fct_elevator_outages
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('int_alert_snapshots')
+        rows:
+          - {snapshot_at: "2026-01-01 00:00:00", snapshot_seq: 1}
+          - {snapshot_at: "2026-01-01 06:00:00", snapshot_seq: 2}
+          - {snapshot_at: "2026-01-01 19:00:00", snapshot_seq: 3}
+          - {snapshot_at: "2026-01-02 01:00:00", snapshot_seq: 4}
+          - {snapshot_at: "2026-01-02 07:00:00", snapshot_seq: 5}
+      - input: ref('int_elevator_closures')
+        format: sql
+        rows: |
+          select 'A' as facility_id, '2026-01-01 00:00:00'::timestamp_ntz as snapshot_at, 1 as snapshot_seq,
+                 'place-a' as station_id, array_construct('a1') as alert_ids,
+                 null::timestamp_ntz as announced_start_at, null::timestamp_ntz as announced_end_at,
+                 'A closed' as header
+          union all select 'A', '2026-01-01 06:00:00', 2, 'place-a', array_construct('a1'), null, null, 'A closed'
+          union all select 'A', '2026-01-02 01:00:00', 4, 'place-a', array_construct('a2'), null, null, 'A closed again'
+          union all select 'A', '2026-01-02 07:00:00', 5, 'place-a', array_construct('a2'), null, null, 'A closed again'
+          union all select 'B', '2026-01-01 06:00:00', 2, 'place-b', array_construct('b1'), null, null, 'B closed'
+          union all select 'B', '2026-01-01 19:00:00', 3, 'place-b', array_construct('b1'), null, null, 'B closed'
+    expect:
+      rows:
+        - {outage_id: "A@2026-01-01T00:00:00.000000", first_seen_at: "2026-01-01 00:00:00", last_seen_at: "2026-01-01 06:00:00",
+           cleared_seen_at: "2026-01-01 19:00:00", is_ongoing: false, began_before_tracking: true,
+           snapshots_seen: 2, min_duration_hours: 6, max_duration_hours: 19}
+        - {outage_id: "A@2026-01-02T01:00:00.000000", first_seen_at: "2026-01-02 01:00:00", last_seen_at: "2026-01-02 07:00:00",
+           cleared_seen_at: null, is_ongoing: true, began_before_tracking: false,
+           snapshots_seen: 2, min_duration_hours: 6, max_duration_hours: 12}
+        - {outage_id: "B@2026-01-01T06:00:00.000000", first_seen_at: "2026-01-01 06:00:00", last_seen_at: "2026-01-01 19:00:00",
+           cleared_seen_at: "2026-01-02 01:00:00", is_ongoing: false, began_before_tracking: false,
+           snapshots_seen: 2, min_duration_hours: 13, max_duration_hours: 25}
+
+  - name: incremental_run_extends_open_outages_and_leaves_finished_ones_alone
+    description: >
+      The last run checked through snapshot 4. A's outage (from snapshot 2) was still open;
+      B's outage (snapshots 1-3) had ended. Snapshot 5 shows A and a new elevator C. The run
+      must extend A and add C, and must not emit a cut-short copy of B starting at
+      snapshot 2 (what reprocessing every elevator from A's start would do).
+    model: fct_elevator_outages
+    overrides:
+      macros:
+        is_incremental: true
+    given:
+      - input: this
+        rows:
+          - {facility_id: A, first_seen_at: "2026-01-01 06:00:00", is_ongoing: true,  last_checked_at: "2026-01-02 01:00:00"}
+          - {facility_id: B, first_seen_at: "2026-01-01 00:00:00", is_ongoing: false, last_checked_at: "2026-01-02 01:00:00"}
+      - input: ref('int_alert_snapshots')
+        rows:
+          - {snapshot_at: "2026-01-01 00:00:00", snapshot_seq: 1}
+          - {snapshot_at: "2026-01-01 06:00:00", snapshot_seq: 2}
+          - {snapshot_at: "2026-01-01 19:00:00", snapshot_seq: 3}
+          - {snapshot_at: "2026-01-02 01:00:00", snapshot_seq: 4}
+          - {snapshot_at: "2026-01-02 07:00:00", snapshot_seq: 5}
+      - input: ref('int_elevator_closures')
+        format: sql
+        rows: |
+          select 'A' as facility_id, '2026-01-01 06:00:00'::timestamp_ntz as snapshot_at, 2 as snapshot_seq,
+                 'place-a' as station_id, array_construct('a1') as alert_ids,
+                 null::timestamp_ntz as announced_start_at, null::timestamp_ntz as announced_end_at,
+                 'A closed' as header
+          union all select 'A', '2026-01-01 19:00:00', 3, 'place-a', array_construct('a1'), null, null, 'A closed'
+          union all select 'A', '2026-01-02 01:00:00', 4, 'place-a', array_construct('a1'), null, null, 'A closed'
+          union all select 'A', '2026-01-02 07:00:00', 5, 'place-a', array_construct('a1'), null, null, 'A closed'
+          union all select 'B', '2026-01-01 00:00:00', 1, 'place-b', array_construct('b1'), null, null, 'B closed'
+          union all select 'B', '2026-01-01 06:00:00', 2, 'place-b', array_construct('b1'), null, null, 'B closed'
+          union all select 'B', '2026-01-01 19:00:00', 3, 'place-b', array_construct('b1'), null, null, 'B closed'
+          union all select 'C', '2026-01-02 07:00:00', 5, 'place-c', array_construct('c1'), null, null, 'C closed'
+    expect:
+      rows:
+        - {outage_id: "A@2026-01-01T06:00:00.000000", last_seen_at: "2026-01-02 07:00:00", is_ongoing: true, snapshots_seen: 4}
+        - {outage_id: "C@2026-01-02T07:00:00.000000", last_seen_at: "2026-01-02 07:00:00", is_ongoing: true, snapshots_seen: 1}

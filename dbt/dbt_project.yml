@@ -1,0 +1,29 @@
+# TransitWise analytics: turns the raw MBTA snapshots and trip log in Snowflake into
+# elevator outage periods, station reliability and trip facts. Run with run_dbt.py.
+name: transitwise
+version: "1.0.0"
+config-version: 2
+profile: transitwise
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Build as if no snapshot after this UTC time existed (e.g. "2026-11-20 00:00").
+  # Used to check that incremental runs give the same result as a full rebuild.
+  snapshots_until: null
+
+models:
+  transitwise:
+    +persist_docs: {relation: true, columns: true}   # descriptions become Snowflake comments
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: staging
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table

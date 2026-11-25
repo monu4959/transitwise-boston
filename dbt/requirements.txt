@@ -1,0 +1,7 @@
+# dbt Core v1 (Apache-2.0) with the Snowflake adapter, pinned so CI runs match local runs
+dbt-core==1.12.7
+dbt-snowflake==1.12.5
+
+# run_dbt.py reuses the project's Snowflake login code (agents/db.py)
+pandas
+python-dotenv

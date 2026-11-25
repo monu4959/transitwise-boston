@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: int_alert_snapshots
+    columns:
+      - name: snapshot_at
+        data_tests: [unique, not_null]
+      - name: snapshot_seq
+        data_tests: [unique, not_null]
+
+  - name: int_elevator_closures
+    description: Grain is elevator x snapshot.
+    data_tests:
+      - unique:
+          arguments:
+            column_name: "facility_id || '@' || snapshot_at::string"
+    columns:
+      - name: station_id
+        description: Parent station named in the alert (doesn't depend on RAW.FACILITIES).
+        data_tests: [not_null]

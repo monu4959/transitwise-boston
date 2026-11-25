@@ -108,8 +108,8 @@ A sweep of 300 random trips (2–12 km) with live MBTA data on 2026-11-20:
 - **Routing**: OpenTripPlanner 2.10 (Docker), MBTA GTFS and GTFS-Realtime, OpenStreetMap
 - **Backend**: Python 3.12, FastAPI, NetworkX (station-level planner)
 - **Frontend**: HTML/CSS/JS, MapLibre GL, CARTO dark basemap
-- **Data**: Snowflake (RAW/CLEAN/RAG schemas, key-pair auth), GitHub Actions alert pipeline
-  every 30 minutes
+- **Data**: Snowflake (RAW/CLEAN/RAG schemas, key-pair auth), GitHub Actions alert pipeline,
+  dbt models (elevator outage periods, station reliability) with tests and freshness checks
 - **AI**: Claude API for explanations and request parsing; sentence-transformers (MiniLM)
   embeddings for policy search
 - **Tooling**: pytest (offline, on recorded OTP answers and real alerts), MCP server for agent
@@ -204,7 +204,8 @@ python otp/sweep_door_to_door.py 300    # evaluate 300 random trips on today's l
 agents/      planning, checking, rerouting, monitoring, places, LLM
 web/         FastAPI server and the static website
 otp/         OpenTripPlanner setup, config, extra step-free transfers, evaluation sweep
-pipeline/    Snowflake database build and the 30-minute alert loader
+pipeline/    Snowflake database build and the alert loader
+dbt/         dbt models: alert snapshots into outage periods, station reliability, trip facts
 sql/         Snowflake setup and CLEAN views
 policy_docs/ MBTA accessibility and shuttle policy PDFs (indexed for search)
 tests/       offline tests and recorded fixtures

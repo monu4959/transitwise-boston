@@ -172,9 +172,23 @@ against the rider's platforms instead of blocking every rider at the station.
 |---|---|---|
 | Database and schemas | `sql/01_setup.sql` | One time |
 | ROUTES, STATIONS, ROUTE_STOPS, PLATFORMS, FACILITIES | `pipeline/build_db.py` (MBTA API → pandas → `write_pandas`) | Refreshed by overwrite |
-| ALERTS_HISTORY | `pipeline/load_alerts.py` on GitHub Actions | Appended every 30 minutes |
+| ALERTS_HISTORY | `pipeline/load_alerts.py` on GitHub Actions | Appended on each run (scheduled every 30 minutes; GitHub runs it a few times a day) |
 | CURRENT_ELEVATOR_OUTAGES | `sql/02_clean_views.sql` | Recomputed on every query |
+| STAGING and MARTS schemas | dbt (`dbt/`), after each load | Views and tables; `fct_elevator_outages` is incremental |
 | POLICY_CHUNKS | `pipeline/build_db.py` (`policy_docs/*.pdf` → page chrome removed → MiniLM embeddings) | Rebuilt on every run |
+
+## dbt layer (STAGING, MARTS)
+
+dbt (`dbt/`, see [dbt/README.md](../dbt/README.md)) reads RAW and LOGS and builds:
+
+| Model | Grain | What it answers |
+|---|---|---|
+| `fct_elevator_outages` (incremental) | elevator outage | When each elevator went out, came back, and for how long (as bounds) |
+| `current_elevator_outages` (view) | station x elevator | Same rows as the CLEAN view, built by dbt |
+| `station_reliability` | station | Outages recorded, elevators out now, outage hours, trips routed around it |
+| `fct_trips` | planned trip | Every logged trip, labeled rider / agent / monitoring / evaluation |
+| `fct_trip_blockers` | trip x avoided station | Which outages the planner routed around |
+| `dim_stations`, `dim_elevators` | station, elevator | Reference data with elevator counts |
 
 ## Notes
 

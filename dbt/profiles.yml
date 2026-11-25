@@ -1,0 +1,27 @@
+# No secrets here: everything comes from environment variables, which run_dbt.py fills
+# from .env locally and from GitHub secrets in Actions. Same service user as the app.
+transitwise:
+  target: dev
+  outputs:
+    dev:        # local runs: DEV_STAGING, DEV_MARTS
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      private_key: "{{ env_var('DBT_ENV_SECRET_SNOWFLAKE_PRIVATE_KEY') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'TRANSITWISE_APP') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'COMPUTE_WH') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'TRANSITWISE_DB') }}"
+      schema: DEV
+      threads: 4
+      query_tag: dbt-transitwise
+    prod:       # GitHub Actions: STAGING, MARTS
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      private_key: "{{ env_var('DBT_ENV_SECRET_SNOWFLAKE_PRIVATE_KEY') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'TRANSITWISE_APP') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'COMPUTE_WH') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'TRANSITWISE_DB') }}"
+      schema: ANALYTICS
+      threads: 4
+      query_tag: dbt-transitwise
