@@ -1,7 +1,8 @@
 # TransitWise analytics (dbt)
 
 Turns what the pipeline loads into Snowflake into tables you can analyze: elevator outage
-periods, station reliability and trip facts. dbt Core 1.12 with the Snowflake adapter.
+periods, station reliability and trip facts. Runs on dbt v2 (2.0.11); also tested on dbt
+Core 1.12 with the same results.
 
 ```
 RAW / LOGS (loaded by Python)     STAGING (views)               MARTS (tables)
@@ -70,8 +71,10 @@ first (how stale the data was before this run; never blocks the load), then the 
 the warehouse wakes, so running dbt in the same job costs seconds instead of an extra wake-up.
 A full build takes about 15 seconds.
 
-## Why dbt Core v1
+## dbt v2 and v1
 
-dbt v2 (a Rust rewrite) is now the default for new installs. v1.12 is open source
-(Apache-2.0) and still fully supported, and the models are plain SQL and YAML with no
-deprecation warnings, so moving to v2 later is an upgrade, not a rewrite.
+The project was built on dbt Core 1.12 and moved to dbt v2 (the Rust engine) without
+changing a model: on the same data, v1 and v2 produced identical rows in every mart table.
+v2 is free to use internally, including in CI; `run_dbt.py` turns off its anonymous usage
+stats. To run on v1 instead, install `dbt-core==1.12.7 dbt-snowflake==1.12.5`; nothing
+else changes.

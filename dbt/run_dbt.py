@@ -38,6 +38,7 @@ def main(args):
     os.environ["DBT_ENV_SECRET_SNOWFLAKE_PRIVATE_KEY"] = base64.b64encode(key).decode()
     os.environ.setdefault("DBT_PROJECT_DIR", str(HERE))
     os.environ.setdefault("DBT_PROFILES_DIR", str(HERE))
+    os.environ.setdefault("DBT_SEND_ANONYMOUS_USAGE_STATS", "false")   # opt out of dbt telemetry
 
     from dbt.cli.main import dbtRunner
     result = dbtRunner().invoke(args)

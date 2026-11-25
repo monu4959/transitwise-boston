@@ -1,7 +1,9 @@
-# dbt Core v1 (Apache-2.0) with the Snowflake adapter, pinned so CI runs match local runs
-dbt-core==1.12.7
-dbt-snowflake==1.12.5
+# dbt v2 (the Rust engine; Snowflake drivers are downloaded on first run). Pinned so CI
+# runs match local runs. The project also runs unchanged on dbt Core 1.12
+# (dbt-core==1.12.7 dbt-snowflake==1.12.5).
+dbt==2.0.11
 
 # run_dbt.py reuses the project's Snowflake login code (agents/db.py)
+snowflake-connector-python
 pandas
 python-dotenv

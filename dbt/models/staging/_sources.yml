@@ -12,6 +12,7 @@ sources:
           (load_alerts.yml). Scheduled every 30 minutes, but GitHub runs it only a few
           times a day, so snapshots are usually 4 to 15 hours apart. An alert repeats in
           every snapshot while it is active. LOADED_AT is UTC.
+        # LOADED_AT has no timezone; dbt v2 warns that it assumes UTC (dbt9002), which is correct.
         config:
           loaded_at_field: loaded_at
           freshness:
