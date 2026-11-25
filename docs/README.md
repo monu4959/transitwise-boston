@@ -87,7 +87,7 @@ erDiagram
 | | LONG_NAME | string |
 | | ROUTE_TYPE | int |
 
-**`STATIONS`**: 257 stations; the hub table
+**`STATIONS`**: 262 stations (every rail station plus the Silver Line Waterfront stations, such as Courthouse); the hub table
 | Key | Column | Type |
 |---|---|---|
 | PK | STATION_ID | string |

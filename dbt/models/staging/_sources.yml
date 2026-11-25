@@ -19,7 +19,9 @@ sources:
             warn_after: {count: 12, period: hour}
             error_after: {count: 24, period: hour}
       - name: stations
-        description: Parent stations from the MBTA API, replaced by pipeline/build_db.py.
+        description: >
+          Parent stations from the MBTA API (rail plus Silver Line Waterfront), replaced by
+          pipeline/build_db.py.
       - name: facilities
         description: >
           Elevators, escalators and lifts from the MBTA API, replaced by build_db.py. Only

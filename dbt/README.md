@@ -35,7 +35,9 @@ the first snapshot that no longer listed it, and whether it is still out.
 
 - Data tests on every model: unique and not-null keys, accepted values, relationships.
   Relationships to `dim_elevators`/`dim_stations` only warn: `RAW.FACILITIES` and
-  `RAW.STATIONS` are refreshed by hand and currently miss Courthouse (elevators 938, 939).
+  `RAW.STATIONS` are refreshed by hand, so a new elevator can appear in alerts first. (This
+  test found that Courthouse was missing: it is served only by the Silver Line, which MBTA
+  files as a bus. `build_db.py` now loads the Silver Line Waterfront stations too.)
 - `tests/assert_elevator_outages_are_consistent.sql`: no outage ends before it starts, no two
   outages of one elevator overlap, at most one ongoing outage per elevator.
 - Unit tests (`models/marts/_unit_tests.yml`) on hand-made snapshots: an elevator that comes

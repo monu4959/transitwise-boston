@@ -61,13 +61,22 @@ def load_routes():
     } for r in mbta("/routes", **{"filter[type]": "0,1,2"})["data"]])
 
 
+SILVER_LINE_WATERFRONT = "741,742,743,746"     # SL1, SL2, SL3, SLW
+
+
 def load_stations():
-    """One row per parent station (platforms and entrances are collapsed into it)."""
+    """One row per parent station (platforms and entrances are collapsed into it): every
+    rail station, plus the Silver Line Waterfront stations (Courthouse, World Trade Center,
+    ...). MBTA files the Silver Line as a bus, but those stations have elevators that show
+    up in alerts. Kerbside Silver Line stops (no place- ID) are left out."""
     data = mbta("/stops", **{"filter[route_type]": "0,1,2", "include": "parent_station"})
     parents = {p["id"]: p for p in data.get("included", []) if p["type"] == "stop"}
     for s in data["data"]:
         if not s["relationships"]["parent_station"]["data"]:
             parents.setdefault(s["id"], s)      # stops that are already a station
+    for s in mbta("/stops", **{"filter[route]": SILVER_LINE_WATERFRONT})["data"]:
+        if s["id"].startswith("place-"):
+            parents.setdefault(s["id"], s)
     return pd.DataFrame([{
         "station_id": s["id"],
         "name": s["attributes"]["name"],
